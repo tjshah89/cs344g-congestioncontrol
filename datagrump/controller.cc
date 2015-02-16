@@ -10,11 +10,12 @@ Controller::Controller( const bool debug )
   : debug_( debug )
 {}
 
+/* Default: fixed window size of 100 outstanding datagrams */
+unsigned int the_window_size = 20;
+
 /* Get current window size, in datagrams */
 unsigned int Controller::window_size( void )
 {
-  /* Default: fixed window size of 100 outstanding datagrams */
-  unsigned int the_window_size = 50;
 
   if ( debug_ ) {
     cerr << "At time " << timestamp_ms()
@@ -48,7 +49,25 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
 			       const uint64_t timestamp_ack_received )
                                /* when the ack was received (by sender) */
 {
-  /* Default: take no action */
+    uint64_t upload_time = recv_timestamp_acked - send_timestamp_acked;
+    if ( sequence_number_acked % the_window_size == 0 ) {
+	if ( upload_time > 40  && upload_time < 80000) {
+	    if (the_window_size > 7)
+		the_window_size--;
+	    cerr << "P Acked with upload time: " << upload_time << ", shrinking window size to "<<the_window_size<<"\n";
+	}
+	if ( upload_time > 0 && upload_time < 20 ) {
+	    the_window_size++;
+	    cerr << "P Acked with upload time: " << upload_time << ", growing t window size to "<<the_window_size<<"\n";
+	}
+    }
+    else {
+	if ( upload_time > 100  && upload_time < 80000) {
+	    if (the_window_size > 7)
+		the_window_size--;
+	    cerr << "P Acked with upload time: " << upload_time << ", shrinking window size to "<<the_window_size<<"\n";
+	}
+    }
 
   if ( debug_ ) {
     cerr << "At time " << timestamp_ack_received
